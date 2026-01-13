@@ -1,0 +1,37 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Registo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+</head>
+<body class="container py-4">
+  <h2>Registo</h2>
+  <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+  <form method="post" action="/register" class="mt-3" style="max-width:520px;">
+    <div class="mb-2">
+      <label class="form-label">Nome</label>
+      <input class="form-control" name="name" type="text" required/>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Email</label>
+      <input class="form-control" name="email" type="text" required/>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Password</label>
+      <input class="form-control" name="password" type="password" required/>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Role</label>
+      <select class="form-select" name="role">
+        <option value="PASSENGER" selected>Passageiro</option>
+        <option value="DRIVER">Condutor</option>
+        <option value="BOTH">Ambos</option>
+      </select>
+    </div>
+    <button class="btn btn-primary mt-2">Criar conta</button>
+    <a class="btn btn-link" href="/login">Voltar</a>
+  </form>
+</body>
+</html>

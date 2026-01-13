@@ -1,0 +1,31 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: payment-cost-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/mobility
+    username: app
+    password: app
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_URL:http://eureka:8761/eureka}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________}
+  pricing:
+    fuelPricePerLiter: ${FUEL_PRICE_L:1.85}
+    energyPricePerKwh: ${ENERGY_PRICE_KWH:0.25}

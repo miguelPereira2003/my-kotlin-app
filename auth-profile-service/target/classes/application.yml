@@ -1,0 +1,35 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: auth-profile-service
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/mobility
+    username: app
+    password: app
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_URL:http://eureka:8761/eureka}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________}
+    expirationMinutes: ${APP_JWT_EXP_MIN:120}

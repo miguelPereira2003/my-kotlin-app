@@ -1,0 +1,123 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: mobility
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  eureka:
+    build: ../eureka-server
+    ports:
+      - "8761:8761"
+
+  api-gateway:
+    build: ../api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+    depends_on:
+      - eureka
+
+  auth-profile-service:
+    build: ../auth-profile-service
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_auth
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+
+  vehicle-service:
+    build: ../vehicle-service
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_vehicle
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+
+  location-service:
+    build: ../location-service
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+    depends_on:
+      - eureka
+
+  payment-cost-service:
+    build: ../payment-cost-service
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+      FUEL_PRICE_L: "1.85"
+      ENERGY_PRICE_KWH: "0.25"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_payment
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+
+  trip-service:
+    build: ../trip-service
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_trip
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+      location-service:
+        condition: service_started
+      payment-cost-service:
+        condition: service_started
+
+  admin-service:
+    build: ../admin-service
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
+    depends_on:
+      - eureka
+
+  front-end-web:
+    build: ../front-end-web
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka
+      API_BASE_URL: http://api-gateway:8080/api
+    depends_on:
+      - api-gateway
