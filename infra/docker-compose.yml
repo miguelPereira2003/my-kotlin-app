@@ -3,37 +3,44 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16
+    container_name: mobility-postgres
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
+      # Nota: esta DB "mobility" é a default; as outras são criadas no init SQL
       POSTGRES_DB: mobility
     ports:
       - "5432:5432"
     volumes:
       - ./postgres-init:/docker-entrypoint-initdb.d
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app"]
+      test: ["CMD-SHELL", "pg_isready -U app -d mobility"]
       interval: 5s
       timeout: 3s
       retries: 20
 
   eureka:
     build: ../eureka-server
+    container_name: mobility-eureka
     ports:
       - "8761:8761"
 
   api-gateway:
     build: ../api-gateway
+    container_name: mobility-gateway
     ports:
       - "8080:8080"
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
     depends_on:
-      - eureka
+      eureka:
+        condition: service_started
 
   auth-profile-service:
     build: ../auth-profile-service
+    container_name: mobility-auth
     ports:
       - "8082:8082"
     environment:
@@ -42,6 +49,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_auth
       SPRING_DATASOURCE_USERNAME: app
       SPRING_DATASOURCE_PASSWORD: app
+      # IMPORTANTE: evitar falha por falta de tabelas no arranque
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,12 +59,14 @@ services:
 
   vehicle-service:
     build: ../vehicle-service
+    container_name: mobility-vehicle
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_vehicle
       SPRING_DATASOURCE_USERNAME: app
       SPRING_DATASOURCE_PASSWORD: app
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,14 +75,17 @@ services:
 
   location-service:
     build: ../location-service
+    container_name: mobility-location
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
     depends_on:
-      - eureka
+      eureka:
+        condition: service_started
 
   payment-cost-service:
     build: ../payment-cost-service
+    container_name: mobility-payment
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
@@ -80,6 +94,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_payment
       SPRING_DATASOURCE_USERNAME: app
       SPRING_DATASOURCE_PASSWORD: app
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       postgres:
         condition: service_healthy
@@ -88,12 +103,14 @@ services:
 
   trip-service:
     build: ../trip-service
+    container_name: mobility-trip
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mobility_trip
       SPRING_DATASOURCE_USERNAME: app
       SPRING_DATASOURCE_PASSWORD: app
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,18 +123,25 @@ services:
 
   admin-service:
     build: ../admin-service
+    container_name: mobility-admin
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       APP_JWT_SECRET: CHANGE_ME_TO_A_LONG_RANDOM_SECRET_64_CHARS_MINIMUM________________
     depends_on:
-      - eureka
+      eureka:
+        condition: service_started
 
   front-end-web:
     build: ../front-end-web
+    container_name: mobility-frontend
     ports:
       - "8081:8081"
     environment:
       EUREKA_URL: http://eureka:8761/eureka
       API_BASE_URL: http://api-gateway:8080/api
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_started
+
+volumes:
+  pgdata:
